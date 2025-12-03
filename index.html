@@ -34,14 +34,29 @@
     // Configuration
     const textMessage = "I love you";
     const particleCount = 70; // Reduced to make it less congested
-    const heartScale = 15; // Size of the heart
+    let heartScale = 15; // Made variable to be set in resize()
     const colors = ["#ff69b4", "#ff1493", "#da70d6"]; // Pink/Purple shades
 
     function resize() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
+
+        // --- Mobile Responsiveness Enhancement ---
+        if (width <= 480) {
+            // Smaller size for phone screens (e.g., scale factor of 8-10)
+            heartScale = 10; 
+        } else {
+            // Larger size for desktop/tablet (e.g., scale factor of 15)
+            heartScale = 15;
+        }
+
         ctx.font = "14px monospace";
         ctx.textAlign = "center";
+        
+        // Recalculate particle positions based on the new scale
+        if (particles.length > 0) {
+            particles.forEach(p => p.updatePosition());
+        }
     }
 
     // 3D Point class
@@ -57,6 +72,7 @@
             this.color = colors[Math.floor(Math.random() * colors.length)];
             this.opacity = Math.random() * 0.5 + 0.5;
             
+            // Initial position update based on the current heartScale
             this.updatePosition();
         }
 
@@ -68,6 +84,7 @@
             let hx = 16 * Math.pow(Math.sin(this.t), 3);
             let hy = -(13 * Math.cos(this.t) - 5 * Math.cos(2 * this.t) - 2 * Math.cos(3 * this.t) - Math.cos(4 * this.t));
             
+            // Use the globally updated heartScale variable
             this.x = hx * heartScale;
             this.y = hy * heartScale;
             this.z = this.layer * 4; 
@@ -101,7 +118,9 @@
             
             // Perspective projection
             let fov = 300;
-            let scale = fov / (fov + pos.z);
+            // Adjust FOV slightly based on scale for better depth effect
+            let effectiveFov = heartScale * 20; 
+            let scale = effectiveFov / (effectiveFov + pos.z);
             
             let x2d = (pos.x * scale) + width / 2;
             let y2d = (pos.y * scale) + height / 2;
@@ -109,7 +128,9 @@
             ctx.globalAlpha = scale * this.opacity;
             ctx.fillStyle = this.color;
             
-            let fontSize = Math.max(8, 20 * scale);
+            // --- MODIFICATION: Increased the base font size multiplier (from 0.5 to 0.8) ---
+            let baseFontSize = Math.max(9, heartScale * 1.2); // Larger base size
+            let fontSize = Math.max(8, baseFontSize * scale);
             ctx.font = `${fontSize}px monospace`;
             ctx.fillText(textMessage, x2d, y2d);
         }
@@ -128,8 +149,6 @@
     function animate() {
         // Clear screen
         ctx.clearRect(0, 0, width, height);
-
-        // NOTE: We removed the angleY += ... lines so the heart itself stays still.
 
         // Sort particles by Z-depth
         let depthMap = particles.map(p => {
